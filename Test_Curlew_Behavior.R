@@ -18,6 +18,7 @@ trials<-read.csv("Predator_Trial_Data_All.csv") #read final dataset
 str(trials)
 
 trials$Year<-as.factor(trials$Year) #change variable classification
+trials$Trial_Order<-as.factor(trials$Trial_Order) #change variable classification
 trials$Mob_Distance<-as.numeric(trials$Mob_Distance) #change variable classification
 
 #remove the one where I accidentally put the speaker too close
@@ -30,7 +31,7 @@ trials<-filter(trials, Nest_ID != "MT23-XRV-04")
 trials<-filter(trials, Nest_ID !="MT24-RAD-01")
 
 #remove outlier
-trials<-filter(trials, Nest_ID !="MT23-XRV-03") ## do I have justification to remove this?
+trials<-filter(trials, Nest_ID !="MT23-XRV-03") ## do I have justification to remove this? Did Pronghorn change things?
 
 #data exploration
 summary(trials$Cryptic_Distance)
@@ -57,6 +58,10 @@ summary(aov(Cryptic_Distance~Year, data = control))
 #Cryptic distance on control trials doesn't vary between years
 
 #testing if trial order affected cryptic distance
+
+summary(trials$Trial_Order)
+#not balanced
+
 control_first<-filter(trials, Trial_Order == "Control First")
 treatment_first<-filter(trials, Trial_Order == "Playback First")
 
@@ -109,7 +114,7 @@ anova(cryptic_model3)
 summary(aov(Cryptic_Distance~Male_Visible, data = trials))
 #male presence does not affect cryptic distance
 
-cryptic_dist_plot<-ggplot(data = trials, mapping = aes(x = PD_Playback, y = Cryptic_Distance, fill = PD_Playback)) +
+cryptic_dist_plot<-ggplot(data = trials, mapping = aes(x = reorder(PD_Playback,-Cryptic_Distance), y = Cryptic_Distance, fill = PD_Playback)) +
   geom_boxplot() +
   geom_point () +
   labs(x = "Prairie Dog Alarm Calls", y = "Cryptic Posture Initiation Distance (m)") + 
@@ -124,6 +129,18 @@ cryptic_dist_plot<-ggplot(data = trials, mapping = aes(x = PD_Playback, y = Cryp
   
 plot(cryptic_dist_plot)
 
+#########################
+
+#using a GLM to test for differences in cryptic posture between control and treatment
+
+cryptic_lm<-lm(Cryptic_Distance ~ PD_Playback, data = trials)
+summary(cryptic_lm)
+#significant difference/same result as with ANOVA
+
+#adding in trial order as a random effect
+cryptic_lmer<-lmer(Cryptic_Distance ~ PD_Playback + (1|Trial_Order), data = trials)
+summary(cryptic_lmer)
+#singular boundary fit because there's not an even number of playback first and control first
 
 #########################
 
